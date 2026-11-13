@@ -13,6 +13,40 @@ export type BackupTask = {
 const priorities: BackupPriority[] = ['Urgent', 'High', 'Medium', 'Low']
 const MAX_TASKS = 5000
 
+function validateTaskList(value: unknown): BackupTask[] {
+  if (!Array.isArray(value)) throw new Error('Task data must be an array.')
+  if (value.length > MAX_TASKS) throw new Error('A task list can contain at most 5000 tasks.')
+
+  const ids = new Set<string>()
+  return value.map((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('Task ' + (index + 1) + ' is invalid.')
+    const task = item as Record<string, unknown>
+    const valid = typeof task.id === 'string' && task.id.length > 0 && task.id.length <= 100 &&
+      typeof task.title === 'string' && task.title.trim().length > 0 && task.title.length <= 240 &&
+      typeof task.project === 'string' && task.project.length <= 80 &&
+      typeof task.priority === 'string' && priorities.includes(task.priority as BackupPriority) &&
+      typeof task.due === 'string' && task.due.length <= 40 &&
+      typeof task.done === 'boolean' &&
+      typeof task.estimate === 'string' && task.estimate.length <= 40
+    if (!valid) throw new Error('Task ' + (index + 1) + ' contains invalid fields.')
+    if (ids.has(task.id as string)) throw new Error('The task list contains duplicate task IDs.')
+    ids.add(task.id as string)
+    return {
+      id: task.id as string,
+      title: (task.title as string).trim(),
+      project: task.project as string,
+      priority: task.priority as BackupPriority,
+      due: task.due as string,
+      done: task.done as boolean,
+      estimate: task.estimate as string,
+    }
+  })
+}
+
+export function parseStoredTasks(value: unknown): BackupTask[] {
+  return validateTaskList(value)
+}
+
 export function createTaskBackup<T extends BackupTask>(tasks: T[], exportedAt = new Date().toISOString()) {
   return JSON.stringify({ format: 'daymark-task-backup', version: 1, exportedAt, tasks }, null, 2)
 }
@@ -25,30 +59,5 @@ export function parseTaskBackup(value: unknown): BackupTask[] {
   if (backup.format !== 'daymark-task-backup' || backup.version !== 1 || !Array.isArray(backup.tasks)) {
     throw new Error('Unsupported backup format or version.')
   }
-  if (backup.tasks.length > MAX_TASKS) throw new Error('A backup can contain at most 5000 tasks.')
-
-  const ids = new Set<string>()
-  return backup.tasks.map((item, index) => {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('Task ' + (index + 1) + ' is invalid.')
-    const task = item as Record<string, unknown>
-    const valid = typeof task.id === 'string' && task.id.length > 0 &&
-      typeof task.title === 'string' && task.title.trim().length > 0 && task.title.length <= 240 &&
-      typeof task.project === 'string' && task.project.length <= 80 &&
-      typeof task.priority === 'string' && priorities.includes(task.priority as BackupPriority) &&
-      typeof task.due === 'string' && task.due.length <= 40 &&
-      typeof task.done === 'boolean' &&
-      typeof task.estimate === 'string' && task.estimate.length <= 40
-    if (!valid) throw new Error('Task ' + (index + 1) + ' contains invalid fields.')
-    if (ids.has(task.id as string)) throw new Error('The backup contains duplicate task IDs.')
-    ids.add(task.id as string)
-    return {
-      id: task.id as string,
-      title: (task.title as string).trim(),
-      project: task.project as string,
-      priority: task.priority as BackupPriority,
-      due: task.due as string,
-      done: task.done as boolean,
-      estimate: task.estimate as string,
-    }
-  })
+  return validateTaskList(backup.tasks)
 }
