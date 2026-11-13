@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getCompletionRate, searchTasks, sortTasksByPriority } from './task'
+import { createTaskBackup, parseStoredTasks, parseTaskBackup } from './taskBackup'
 
 const tasks = [
   { id: '1', title: 'Write report', priority: 'medium' as const, tags: ['work'] },
@@ -27,8 +28,6 @@ describe('task utilities', () => {
   })
 })
 
-import { createTaskBackup, parseStoredTasks, parseTaskBackup } from './taskBackup'
-
 describe('task backup', () => {
   const sample = [{ id: 'a1', title: 'Write docs', project: 'Work', priority: 'High' as const, due: 'Today', done: false, estimate: '30 min' }]
 
@@ -40,6 +39,13 @@ describe('task backup', () => {
   it('rejects unsupported formats and malformed task data', () => {
     expect(() => parseTaskBackup({ format: 'other', version: 1, tasks: [] })).toThrow('Unsupported backup')
     expect(() => parseTaskBackup({ format: 'daymark-task-backup', version: 1, tasks: [{ id: 'x' }] })).toThrow('invalid fields')
+  })
+
+  it('trims task titles and rejects empty titles and oversized fields', () => {
+    const padded = { ...sample[0], title: '  Write docs  ' }
+    expect(parseTaskBackup({ format: 'daymark-task-backup', version: 1, tasks: [padded] })[0].title).toBe('Write docs')
+    expect(() => parseTaskBackup({ format: 'daymark-task-backup', version: 1, tasks: [{ ...sample[0], title: '   ' }] })).toThrow('invalid fields')
+    expect(() => parseStoredTasks([{ ...sample[0], project: 'p'.repeat(81) }])).toThrow('invalid fields')
   })
 
   it('rejects duplicate IDs and excessive task counts', () => {
