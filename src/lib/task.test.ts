@@ -13,16 +13,13 @@ describe('task utilities', () => {
     expect(sorted.map(task => task.id)).toEqual(['2', '1', '3'])
     expect(tasks[0].id).toBe('1')
   })
-
   it('searches titles and tags case-insensitively', () => {
     expect(searchTasks(tasks, 'URGENT').map(task => task.id)).toEqual(['2'])
     expect(searchTasks(tasks, 'planning').map(task => task.id)).toEqual(['3'])
   })
-
   it('returns all tasks for an empty query', () => {
     expect(searchTasks(tasks, '  ')).toHaveLength(3)
   })
-
   it('calculates a safe completion percentage', () => {
     expect(getCompletionRate(4, 3)).toBe(75)
     expect(getCompletionRate(0, 0)).toBe(0)
