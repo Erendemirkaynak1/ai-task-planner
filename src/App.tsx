@@ -29,10 +29,14 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [aiPrompt, setAiPrompt] = useState('')
   const [showAiPlan, setShowAiPlan] = useState(false)
-  const [dark, setDark] = useState(false)
+  const [dark, setDark] = useState(() => { try { return localStorage.getItem('daymark.theme') === 'dark' } catch { return false } })
   const importRef = useRef<HTMLInputElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const [backupMessage, setBackupMessage] = useState('')
+
+  useEffect(() => {
+    try { localStorage.setItem('daymark.theme', dark ? 'dark' : 'light') } catch { /* Theme still works for this session. */ }
+  }, [dark])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -113,7 +117,7 @@ export default function App() {
       <div className="workspace"><div className="avatar">E</div><div><strong>My workspace</strong><small>Personal plan</small></div><ChevronDown size={15} /></div>
       <div className="nav-label">WORKSPACE</div>
       <nav>
-        {[{ name: 'Today', icon: LayoutDashboard }, { name: 'Upcoming', icon: CalendarDays }, { name: 'All tasks', icon: ListTodo }, { name: 'Completed', icon: CheckCircle2 }, { name: 'Calendar', icon: CalendarDays }, { name: 'Board', icon: ListTodo }].map(({ name, icon: Icon }) => <button key={name} className={active === name ? 'nav-item active' : 'nav-item'} onClick={() => setActive(name)}><Icon size={17}/><span>{name}</span>{name === 'Today' && <i>{tasks.filter(t => t.due === 'Today' && !t.done).length}</i>}</button>)}
+        {[{ name: 'Today', icon: LayoutDashboard }, { name: 'Upcoming', icon: CalendarDays }, { name: 'All tasks', icon: ListTodo }, { name: 'Completed', icon: CheckCircle2 }, { name: 'Calendar', icon: CalendarDays }, { name: 'Board', icon: ListTodo }].map(({ name, icon: Icon }) => <button key={name} type="button" title={name} aria-label={name} aria-current={active === name ? 'page' : undefined} className={active === name ? 'nav-item active' : 'nav-item'} onClick={() => setActive(name)}><Icon size={17}/><span>{name}</span>{name === 'Today' && <i>{tasks.filter(t => t.due === 'Today' && !t.done).length}</i>}</button>)}
       </nav>
       <div className="nav-label projects-label">YOUR SPACE</div>
       <button className="nav-item" onClick={() => setActive('All tasks')}><span className="project-dot violet"/>Projects <MoreHorizontal size={16} className="nav-more"/></button>
@@ -126,7 +130,7 @@ export default function App() {
     </aside>
 
     <main className="main">
-      <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div><div className="top-actions"><div className="searchbox"><Search size={16}/><input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tasks..." aria-label="Search tasks" /><kbd>⌘ K</kbd></div><button className="icon-button" aria-label="Notifications"><Bell size={18}/><b/></button><div className="top-avatar">E</div></div></header>
+      <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div><div className="top-actions"><div className="searchbox"><Search size={16}/><input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tasks..." aria-label="Search tasks" />{query && <button type="button" className="clear-search" onClick={() => setQuery('')} aria-label="Clear search"><X size={13}/></button>}<kbd>⌘ K</kbd></div><button className="icon-button" aria-label="Notifications"><Bell size={18}/><b/></button><div className="top-avatar">E</div></div></header>
       <div className="content">
         <section className="welcome"><div><div className="eyebrow">{todayLabel.toUpperCase()}</div><h1>Make today <span>meaningful.</span></h1><p>A little progress each day adds up to big results.</p></div><button className="primary-button" onClick={openCreate}><Plus size={17}/> New task</button></section>
         <section className="stats-grid">
@@ -137,7 +141,7 @@ export default function App() {
         {active === 'Calendar' ? <CalendarView tasks={tasks}/> : active === 'Board' ? <KanbanBoard tasks={tasks} onToggle={toggle}/> : <section className="planner-grid">
           <div className="panel tasks-panel"><div className="panel-heading"><div><div className="panel-title">Your tasks <span className="count-pill">{visible.length}</span></div><p>Stay focused on your next step.</p></div><div className="task-tools"><button className="subtle-button" onClick={exportBackup} title="Export all tasks"><Download size={14}/> Export</button><button className="subtle-button" onClick={() => importRef.current?.click()} title="Import a Daymark backup"><Upload size={14}/> Import</button><button className="subtle-button" onClick={() => setActive('All tasks')}><Filter size={15}/> View all</button><input ref={importRef} type="file" accept="application/json,.json" hidden onChange={event => void importBackup(event.target.files?.[0])}/></div></div>{backupMessage && <div className="backup-message" role="status">{backupMessage}<button onClick={() => setBackupMessage('')} aria-label="Dismiss message"><X size={13}/></button></div>}
             <div className="task-tabs">{['Today','Upcoming','All tasks','Completed'].map(tab => <button key={tab} onClick={() => setActive(tab)} className={active === tab ? 'selected' : ''}>{tab}</button>)}</div>
-            <div className="task-list">{visible.length ? visible.map(task => <div className={task.done ? 'task-row is-done' : 'task-row'} key={task.id}><button className={task.done ? 'check checked' : 'check'} onClick={() => toggle(task.id)} aria-label={task.done ? 'Mark incomplete' : 'Complete task'}>{task.done && <Check size={13}/>}</button><div className="task-info"><strong>{task.title}</strong><div className="task-meta"><span className="project-name">{task.project}</span><span>·</span><span><Clock3 size={12}/> {task.estimate}</span><span>·</span><span>{task.due}</span></div></div><span className={'priority priority-' + task.priority.toLowerCase()}><i/>{task.priority}</span><button className="delete-task" onClick={() => openEdit(task)} aria-label="Edit task"><Pencil size={14}/></button><button className="delete-task" onClick={() => remove(task.id)} aria-label="Delete task"><Trash2 size={15}/></button></div>) : <div className="empty-state"><Circle size={24}/><strong>Nothing on your list</strong><span>Add a task or try a different view.</span></div>}</div>
+            <div className="task-list">{visible.length ? visible.map(task => <div className={task.done ? 'task-row is-done' : 'task-row'} key={task.id}><button className={task.done ? 'check checked' : 'check'} onClick={() => toggle(task.id)} aria-label={task.done ? 'Mark incomplete' : 'Complete task'}>{task.done && <Check size={13}/>}</button><div className="task-info"><strong>{task.title}</strong><div className="task-meta"><span className="project-name">{task.project}</span><span>·</span><span><Clock3 size={12}/> {task.estimate}</span><span>·</span><span>{task.due}</span></div></div><span className={'priority priority-' + task.priority.toLowerCase()}><i/>{task.priority}</span><button className="delete-task" onClick={() => openEdit(task)} aria-label="Edit task"><Pencil size={14}/></button><button className="delete-task" onClick={() => remove(task.id)} aria-label="Delete task"><Trash2 size={15}/></button></div>) : <div className="empty-state"><Circle size={24}/><strong>{query ? 'No matching tasks' : 'Nothing on your list'}</strong><span>{query ? 'Try another keyword or clear your search.' : 'Add a task or try a different view.'}</span>{query && <button type="button" className="empty-reset" onClick={() => setQuery('')}>Clear search</button>}</div>}</div>
             <button className="add-inline" onClick={openCreate}><Plus size={15}/> Add a task</button>
           </div>
           <div className="right-column">
