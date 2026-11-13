@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { CalendarView, KanbanBoard } from './components/PlannerViews'
 import { createTaskBackup, parseStoredTasks, parseTaskBackup } from './lib/taskBackup'
@@ -31,7 +31,23 @@ export default function App() {
   const [showAiPlan, setShowAiPlan] = useState(false)
   const [dark, setDark] = useState(false)
   const importRef = useRef<HTMLInputElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
   const [backupMessage, setBackupMessage] = useState('')
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        searchRef.current?.focus()
+      }
+      if (event.key === 'Escape') {
+        setShowAdd(false)
+        setShowAiPlan(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const persist = (next: Task[]) => {
     setTasks(next)
@@ -43,7 +59,7 @@ export default function App() {
   }
   const visible = useMemo(() => tasks.filter(t => {
     const matches = (t.title + ' ' + t.project).toLowerCase().includes(query.toLowerCase())
-    return matches && (active === 'Today' ? t.due === 'Today' : active === 'Upcoming' ? t.due !== 'Today' : active === 'Completed' ? t.done : true)
+    return matches && (active === 'Today' ? t.due === 'Today' && !t.done : active === 'Upcoming' ? t.due !== 'Today' && !t.done : active === 'Completed' ? t.done : true)
   }).sort((a,b) => priorityOrder.indexOf(a.priority) - priorityOrder.indexOf(b.priority)), [tasks, query, active])
   const completed = tasks.filter(t => t.done).length
   const progress = tasks.length ? Math.round(completed / tasks.length * 100) : 0
@@ -110,7 +126,7 @@ export default function App() {
     </aside>
 
     <main className="main">
-      <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div><div className="top-actions"><div className="searchbox"><Search size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tasks..." /><kbd>⌘ K</kbd></div><button className="icon-button" aria-label="Notifications"><Bell size={18}/><b/></button><div className="top-avatar">E</div></div></header>
+      <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div><div className="top-actions"><div className="searchbox"><Search size={16}/><input ref={searchRef} value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tasks..." aria-label="Search tasks" /><kbd>⌘ K</kbd></div><button className="icon-button" aria-label="Notifications"><Bell size={18}/><b/></button><div className="top-avatar">E</div></div></header>
       <div className="content">
         <section className="welcome"><div><div className="eyebrow">{todayLabel.toUpperCase()}</div><h1>Make today <span>meaningful.</span></h1><p>A little progress each day adds up to big results.</p></div><button className="primary-button" onClick={openCreate}><Plus size={17}/> New task</button></section>
         <section className="stats-grid">
