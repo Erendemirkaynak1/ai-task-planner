@@ -9,3 +9,6 @@
 .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.modal-row label{min-width:0}
 .task-row .delete-task{opacity:1;color:#aeb2c0}.task-row .delete-task:hover{color:#6b5ce7}
 @media(max-width:420px){.modal-row{grid-template-columns:1fr;gap:0}}
+
+.task-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.backup-message{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-top:12px;padding:9px 11px;border-radius:7px;background:var(--soft);border:1px solid var(--line);color:var(--muted);font-size:10px;line-height:1.5}.backup-message button{border:0;background:transparent;color:inherit;cursor:pointer;padding:0;flex-shrink:0}
+@media(max-width:580px){.task-tools{justify-content:flex-end}.task-tools .subtle-button{padding:6px 7px;font-size:9px}}
