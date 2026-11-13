@@ -139,7 +139,7 @@ app.post('/api/ai/plan', requireUser, limitAiRequests, asyncHandler(async (req, 
   if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'AI provider is not configured.' })
 
   try {
-    const ai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    const ai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 30_000, maxRetries: 1 })
     const completion = await ai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       temperature: 0.3,
@@ -167,6 +167,9 @@ app.get('*', (_req, res, next) => res.sendFile(path.join(root, 'dist', 'index.ht
 }))
 
 app.use((error, _req, res, _next) => {
+  if (error?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body is too large. Maximum size is 32 KB.' })
+  }
   if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
     return res.status(400).json({ error: 'Request body contains invalid JSON.' })
   }
