@@ -1,4 +1,4 @@
-import { addDays, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek } from 'date-fns'
+import { addDays, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, nextMonday, startOfMonth, startOfWeek } from 'date-fns'
 import { CheckCircle2, ChevronLeft, ChevronRight, Circle, Clock3, Pencil, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
@@ -44,7 +44,7 @@ export function CalendarView({ tasks }: { tasks: PlannerTask[] }) {
     <div className="calendar-toolbar"><div><strong>{format(month, 'MMMM yyyy')}</strong><span>Plan your time, one day at a time.</span></div><div className="calendar-controls"><button onClick={() => setMonth(value => addDays(startOfMonth(value), -1))} aria-label="Previous month"><ChevronLeft size={17}/></button><button onClick={() => setMonth(startOfMonth(today))}>Today</button><button onClick={() => setMonth(value => addDays(endOfMonth(value), 1))} aria-label="Next month"><ChevronRight size={17}/></button></div></div>
     <div className="calendar-grid">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => <div className="calendar-weekday" key={day}>{day}</div>)}
       {days.map(day => {
-        const dayTasks = tasks.filter(task => task.due === 'Today' ? isSameDay(day, today) : task.due === 'Tomorrow' ? isSameDay(day, addDays(today, 1)) : task.due === 'Next week' ? isSameDay(day, addDays(today, 7)) : false)
+        const dayTasks = tasks.filter(task => task.due === 'Today' ? isSameDay(day, today) : task.due === 'Tomorrow' ? isSameDay(day, addDays(today, 1)) : task.due === 'Next week' ? isSameDay(day, nextMonday(today)) : false)
         return <div className={`calendar-day ${isSameMonth(day, month) ? '' : 'outside'} ${isSameDay(day, today) ? 'is-today' : ''}`} key={day.toISOString()}>
           <span className="calendar-date">{format(day, 'd')}</span>
           {dayTasks.slice(0, 2).map(task => <div className={`calendar-event ${task.done ? 'event-done' : ''}`} key={task.id} title={task.title}>{task.title}</div>)}
