@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { CalendarView, KanbanBoard } from './components/PlannerViews'
-import { Activity, ArrowDown, ArrowUpRight, Bell, CalendarDays, Check, CheckCircle2, ChevronDown, Circle, Clock3, Command, Filter, LayoutDashboard, ListTodo, MoreHorizontal, Plus, Search, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUpRight, Bell, CalendarDays, Check, CheckCircle2, ChevronDown, Circle, Clock3, Command, Filter, LayoutDashboard, ListTodo, MoreHorizontal, Pencil, Plus, Search, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
 
 type Priority = 'Urgent' | 'High' | 'Medium' | 'Low'
 type Task = { id: string; title: string; project: string; priority: Priority; due: string; done: boolean; estimate: string }
@@ -23,6 +23,9 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newPriority, setNewPriority] = useState<Priority>('Medium')
+  const [newDue, setNewDue] = useState('Today')
+  const [newProject, setNewProject] = useState('Personal')
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [aiPrompt, setAiPrompt] = useState('')
   const [showAiPlan, setShowAiPlan] = useState(false)
   const [dark, setDark] = useState(false)
@@ -35,10 +38,20 @@ export default function App() {
   const completed = tasks.filter(t => t.done).length
   const progress = tasks.length ? Math.round(completed / tasks.length * 100) : 0
   const toggle = (id: string) => persist(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
+  const openCreate = () => {
+    setEditingId(null); setNewTitle(''); setNewPriority('Medium'); setNewDue('Today'); setNewProject('Personal'); setShowAdd(true)
+  }
+  const openEdit = (task: Task) => {
+    setEditingId(task.id); setNewTitle(task.title); setNewPriority(task.priority); setNewDue(task.due); setNewProject(task.project); setShowAdd(true)
+  }
   const addTask = () => {
     if (!newTitle.trim()) return
-    persist([{ id: crypto.randomUUID(), title: newTitle.trim(), project: 'Personal', priority: newPriority, due: 'Today', done: false, estimate: '30 min' }, ...tasks])
-    setNewTitle(''); setShowAdd(false)
+    if (editingId) {
+      persist(tasks.map(task => task.id === editingId ? { ...task, title: newTitle.trim(), priority: newPriority, due: newDue, project: newProject.trim() || 'Personal' } : task))
+    } else {
+      persist([{ id: crypto.randomUUID(), title: newTitle.trim(), project: newProject.trim() || 'Personal', priority: newPriority, due: newDue, done: false, estimate: '30 min' }, ...tasks])
+    }
+    setNewTitle(''); setEditingId(null); setShowAdd(false)
   }
   const remove = (id: string) => persist(tasks.filter(t => t.id !== id))
 
@@ -63,7 +76,7 @@ export default function App() {
     <main className="main">
       <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{active}</strong></div><div className="top-actions"><div className="searchbox"><Search size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tasks..." /><kbd>⌘ K</kbd></div><button className="icon-button" aria-label="Notifications"><Bell size={18}/><b/></button><div className="top-avatar">E</div></div></header>
       <div className="content">
-        <section className="welcome"><div><div className="eyebrow">{todayLabel.toUpperCase()}</div><h1>Make today <span>meaningful.</span></h1><p>A little progress each day adds up to big results.</p></div><button className="primary-button" onClick={() => setShowAdd(true)}><Plus size={17}/> New task</button></section>
+        <section className="welcome"><div><div className="eyebrow">{todayLabel.toUpperCase()}</div><h1>Make today <span>meaningful.</span></h1><p>A little progress each day adds up to big results.</p></div><button className="primary-button" onClick={openCreate}><Plus size={17}/> New task</button></section>
         <section className="stats-grid">
           <div className="stat-card"><div className="stat-top"><span>Tasks completed</span><span className="stat-icon mint"><CheckCircle2 size={17}/></span></div><div className="stat-value">{completed}<small> / {tasks.length}</small></div><div className="stat-foot"><span className="positive"><TrendingUp size={13}/> {progress}%</span> of all tasks</div><div className="progress-track"><div style={{width: progress + '%'}}/></div></div>
           <div className="stat-card"><div className="stat-top"><span>Due today</span><span className="stat-icon blue"><Clock3 size={17}/></span></div><div className="stat-value">{tasks.filter(t => t.due === 'Today' && !t.done).length}<small> tasks</small></div><div className="stat-foot">Keep your momentum going</div><div className="mini-bars"><i/><i/><i/><i/><i/><i/><i/></div></div>
@@ -72,8 +85,8 @@ export default function App() {
         {active === 'Calendar' ? <CalendarView tasks={tasks}/> : active === 'Board' ? <KanbanBoard tasks={tasks} onToggle={toggle}/> : <section className="planner-grid">
           <div className="panel tasks-panel"><div className="panel-heading"><div><div className="panel-title">Your tasks <span className="count-pill">{visible.length}</span></div><p>Stay focused on your next step.</p></div><button className="subtle-button" onClick={() => setActive('All tasks')}><Filter size={15}/> View all</button></div>
             <div className="task-tabs">{['Today','Upcoming','All tasks','Completed'].map(tab => <button key={tab} onClick={() => setActive(tab)} className={active === tab ? 'selected' : ''}>{tab}</button>)}</div>
-            <div className="task-list">{visible.length ? visible.map(task => <div className={task.done ? 'task-row is-done' : 'task-row'} key={task.id}><button className={task.done ? 'check checked' : 'check'} onClick={() => toggle(task.id)} aria-label={task.done ? 'Mark incomplete' : 'Complete task'}>{task.done && <Check size={13}/>}</button><div className="task-info"><strong>{task.title}</strong><div className="task-meta"><span className="project-name">{task.project}</span><span>·</span><span><Clock3 size={12}/> {task.estimate}</span><span>·</span><span>{task.due}</span></div></div><span className={'priority priority-' + task.priority.toLowerCase()}><i/>{task.priority}</span><button className="delete-task" onClick={() => remove(task.id)} aria-label="Delete task"><Trash2 size={15}/></button></div>) : <div className="empty-state"><Circle size={24}/><strong>Nothing on your list</strong><span>Add a task or try a different view.</span></div>}</div>
-            <button className="add-inline" onClick={() => setShowAdd(true)}><Plus size={15}/> Add a task</button>
+            <div className="task-list">{visible.length ? visible.map(task => <div className={task.done ? 'task-row is-done' : 'task-row'} key={task.id}><button className={task.done ? 'check checked' : 'check'} onClick={() => toggle(task.id)} aria-label={task.done ? 'Mark incomplete' : 'Complete task'}>{task.done && <Check size={13}/>}</button><div className="task-info"><strong>{task.title}</strong><div className="task-meta"><span className="project-name">{task.project}</span><span>·</span><span><Clock3 size={12}/> {task.estimate}</span><span>·</span><span>{task.due}</span></div></div><span className={'priority priority-' + task.priority.toLowerCase()}><i/>{task.priority}</span><button className="delete-task" onClick={() => openEdit(task)} aria-label="Edit task"><Pencil size={14}/></button><button className="delete-task" onClick={() => remove(task.id)} aria-label="Delete task"><Trash2 size={15}/></button></div>) : <div className="empty-state"><Circle size={24}/><strong>Nothing on your list</strong><span>Add a task or try a different view.</span></div>}</div>
+            <button className="add-inline" onClick={openCreate}><Plus size={15}/> Add a task</button>
           </div>
           <div className="right-column">
             <div className="panel focus-panel"><div className="panel-heading"><div><div className="panel-title"><span className="sparkle-title"><Sparkles size={17}/></span> AI planning assistant</div><p>Turn a goal into your next steps.</p></div><span className="online-dot"/></div><div className="ai-prompt"><textarea id="ai-input" value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} placeholder="e.g. Launch my portfolio website in 2 weeks..." rows={3}/><div className="ai-prompt-footer"><span><Command size={12}/> Be as specific as you like</span><button disabled={!aiPrompt.trim()} onClick={() => setShowAiPlan(true)}><Sparkles size={14}/> Build a plan</button></div></div>{showAiPlan && <div className="ai-notice"><Sparkles size={15}/><span>Your goal is ready for AI planning. Connect an AI provider to generate and review a suggested task breakdown.</span><button onClick={() => setShowAiPlan(false)} aria-label="Dismiss"><X size={14}/></button></div>}<div className="ai-tip"><div className="tip-icon"><Target size={15}/></div><div><strong>Small steps, big momentum</strong><p>Break ambitious goals into focused 25–45 minute sessions.</p></div></div></div>
@@ -82,6 +95,6 @@ export default function App() {
         </section>}
       </div>
     </main>
-    {showAdd && <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setShowAdd(false) }}><div className="modal"><div className="modal-head"><div><h2>Create a task</h2><p>Make your next step clear and actionable.</p></div><button onClick={() => setShowAdd(false)} aria-label="Close"><X size={18}/></button></div><label>Task name<input autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} placeholder="What needs to get done?"/></label><label>Priority<select value={newPriority} onChange={e => setNewPriority(e.target.value as Priority)}>{priorityOrder.map(p => <option key={p}>{p}</option>)}</select></label><div className="modal-actions"><button className="cancel-button" onClick={() => setShowAdd(false)}>Cancel</button><button className="primary-button" onClick={addTask} disabled={!newTitle.trim()}><Plus size={16}/> Create task</button></div></div></div>}
+    {showAdd && <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setShowAdd(false) }}><div className="modal"><div className="modal-head"><div><h2>{editingId ? 'Edit task' : 'Create a task'}</h2><p>Make your next step clear and actionable.</p></div><button onClick={() => setShowAdd(false)} aria-label="Close"><X size={18}/></button></div><label>Task name<input autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} placeholder="What needs to get done?"/></label><label>Project or category<input value={newProject} onChange={e => setNewProject(e.target.value)} placeholder="Personal, Work, Learning..."/></label><div className="modal-row"><label>Priority<select value={newPriority} onChange={e => setNewPriority(e.target.value as Priority)}>{priorityOrder.map(p => <option key={p}>{p}</option>)}</select></label><label>Due date<select value={newDue} onChange={e => setNewDue(e.target.value)}><option>Today</option><option>Tomorrow</option><option>Next week</option><option>No date</option></select></label></div><div className="modal-actions"><button className="cancel-button" onClick={() => setShowAdd(false)}>Cancel</button><button className="primary-button" onClick={addTask} disabled={!newTitle.trim()}>{editingId ? 'Save changes' : <><Plus size={16}/> Create task</>}</button></div></div></div>}
   </div>
 }
