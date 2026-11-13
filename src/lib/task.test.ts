@@ -27,7 +27,7 @@ describe('task utilities', () => {
   })
 })
 
-import { createTaskBackup, parseTaskBackup } from './taskBackup'
+import { createTaskBackup, parseStoredTasks, parseTaskBackup } from './taskBackup'
 
 describe('task backup', () => {
   const sample = [{ id: 'a1', title: 'Write docs', project: 'Work', priority: 'High' as const, due: 'Today', done: false, estimate: '30 min' }]
@@ -45,5 +45,23 @@ describe('task backup', () => {
   it('rejects duplicate IDs and excessive task counts', () => {
     expect(() => parseTaskBackup({ format: 'daymark-task-backup', version: 1, tasks: [...sample, ...sample] })).toThrow('duplicate')
     expect(() => parseTaskBackup({ format: 'daymark-task-backup', version: 1, tasks: Array(5001).fill(sample[0]) })).toThrow('at most')
+  })
+})
+
+describe('stored task validation', () => {
+  it('accepts an empty list and valid task data', () => {
+    expect(parseStoredTasks([])).toEqual([])
+    expect(parseStoredTasks([{ id: 'x', title: 'Task', project: 'Work', priority: 'Low', due: 'No date', done: false, estimate: '15 min' }])).toHaveLength(1)
+  })
+
+  it('rejects malformed local storage and duplicate IDs', () => {
+    expect(() => parseStoredTasks({})).toThrow('array')
+    const duplicate = { id: 'same', title: 'Task', project: 'Work', priority: 'Low', due: 'Today', done: false, estimate: '15 min' }
+    expect(() => parseStoredTasks([duplicate, duplicate])).toThrow('duplicate')
+  })
+
+  it('rejects oversized task lists and invalid identifiers', () => {
+    expect(() => parseStoredTasks(Array(5001).fill({}))).toThrow('5000')
+    expect(() => parseStoredTasks([{ id: 'x'.repeat(101), title: 'Task', project: 'Work', priority: 'Low', due: 'Today', done: false, estimate: '15 min' }])).toThrow('invalid fields')
   })
 })
