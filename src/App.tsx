@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { CalendarView, KanbanBoard } from './components/PlannerViews'
-import { Activity, ArrowDown, ArrowUpRight, Bell, CalendarDays, Check, CheckCircle2, ChevronDown, Circle, Clock3, Command, Filter, LayoutDashboard, ListTodo, MoreHorizontal, Pencil, Plus, Search, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
+import { Activity, ArrowUpRight, Bell, CalendarDays, Check, CheckCircle2, ChevronDown, Circle, Clock3, Command, Filter, LayoutDashboard, ListTodo, MoreHorizontal, Pencil, Plus, Search, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
 
 type Priority = 'Urgent' | 'High' | 'Medium' | 'Low'
 type Task = { id: string; title: string; project: string; priority: Priority; due: string; done: boolean; estimate: string }
