@@ -26,3 +26,24 @@ describe('task utilities', () => {
     expect(getCompletionRate(4, 8)).toBe(100)
   })
 })
+
+import { createTaskBackup, parseTaskBackup } from './taskBackup'
+
+describe('task backup', () => {
+  const sample = [{ id: 'a1', title: 'Write docs', project: 'Work', priority: 'High' as const, due: 'Today', done: false, estimate: '30 min' }]
+
+  it('round-trips task data through a versioned backup', () => {
+    const backup = createTaskBackup(sample, '2026-11-13T12:00:00.000Z')
+    expect(parseTaskBackup(JSON.parse(backup))).toEqual(sample)
+  })
+
+  it('rejects unsupported formats and malformed task data', () => {
+    expect(() => parseTaskBackup({ format: 'other', version: 1, tasks: [] })).toThrow('Unsupported backup')
+    expect(() => parseTaskBackup({ format: 'daymark-task-backup', version: 1, tasks: [{ id: 'x' }] })).toThrow('invalid fields')
+  })
+
+  it('rejects duplicate IDs and excessive task counts', () => {
+    expect(() => parseTaskBackup({ format: 'daymark-task-backup', version: 1, tasks: [...sample, ...sample] })).toThrow('duplicate')
+    expect(() => parseTaskBackup({ format: 'daymark-task-backup', version: 1, tasks: Array(5001).fill(sample[0]) })).toThrow('at most')
+  })
+})
