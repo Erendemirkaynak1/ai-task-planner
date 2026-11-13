@@ -5,8 +5,10 @@ Daymark is an AI-assisted productivity workspace. The repository contains a resp
 ## Implemented foundation
 
 - Responsive productivity dashboard with light/dark appearance
-- Task creation, completion, deletion, search and priority views
+- Task creation, editing, completion, deletion, project/category labels, due-date presets, search and priority views
 - Local browser persistence for the unauthenticated demo experience
+- Monthly calendar with task markers and month navigation
+- Kanban board with To do and Completed columns
 - Reusable task sorting, search and completion-rate utilities
 - Authenticated Node.js task CRUD API backed by Supabase
 - Zod validation for task input and AI planning requests
@@ -85,8 +87,9 @@ The app and API are served together at `http://localhost:8080`. Supply server en
 
 - [ ] Supabase sign-in/sign-up UI and browser session management
 - [ ] Connect dashboard task state to authenticated API
-- [ ] Task editing, categories, tags, due dates and reminders
-- [ ] Calendar and Kanban views
+- [x] Task editing, project/category labels and due-date presets
+- [ ] Tags, precise due times and browser reminders
+- [x] Calendar and Kanban views
 - [ ] Recurring task scheduler
 - [ ] AI proposal review UI with explicit per-task approval
 - [ ] Daily/weekly plans, duration estimates and conflict detection
