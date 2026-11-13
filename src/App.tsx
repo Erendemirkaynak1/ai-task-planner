@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Activity, ArrowDown, ArrowUpRight, Bell, CalendarDays, Check, CheckCircle2, ChevronDown, Circle, Clock3, Command, Filter, LayoutDashboard, ListTodo, MoreHorizontal, Plus, Search, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
 
 type Priority = 'Urgent' | 'High' | 'Medium' | 'Low'
@@ -46,7 +47,7 @@ export default function App() {
       <div className="workspace"><div className="avatar">E</div><div><strong>My workspace</strong><small>Personal plan</small></div><ChevronDown size={15} /></div>
       <div className="nav-label">WORKSPACE</div>
       <nav>
-        {[['Today', LayoutDashboard], ['Upcoming', CalendarDays], ['All tasks', ListTodo], ['Completed', CheckCircle2]].map(([name, Icon]) => <button key={name as string} className={active === name ? 'nav-item active' : 'nav-item'} onClick={() => setActive(name as string)}><Icon size={17}/><span>{name as string}</span>{name === 'Today' && <i>{tasks.filter(t => t.due === 'Today' && !t.done).length}</i>}</button>)}
+        {[{ name: 'Today', icon: LayoutDashboard }, { name: 'Upcoming', icon: CalendarDays }, { name: 'All tasks', icon: ListTodo }, { name: 'Completed', icon: CheckCircle2 }].map(({ name, icon: Icon }) => <button key={name} className={active === name ? 'nav-item active' : 'nav-item'} onClick={() => setActive(name)}><Icon size={17}/><span>{name}</span>{name === 'Today' && <i>{tasks.filter(t => t.due === 'Today' && !t.done).length}</i>}</button>)}
       </nav>
       <div className="nav-label projects-label">YOUR SPACE</div>
       <button className="nav-item" onClick={() => setActive('All tasks')}><span className="project-dot violet"/>Projects <MoreHorizontal size={16} className="nav-more"/></button>
@@ -75,7 +76,7 @@ export default function App() {
           </div>
           <div className="right-column">
             <div className="panel focus-panel"><div className="panel-heading"><div><div className="panel-title"><span className="sparkle-title"><Sparkles size={17}/></span> AI planning assistant</div><p>Turn a goal into your next steps.</p></div><span className="online-dot"/></div><div className="ai-prompt"><textarea id="ai-input" value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} placeholder="e.g. Launch my portfolio website in 2 weeks..." rows={3}/><div className="ai-prompt-footer"><span><Command size={12}/> Be as specific as you like</span><button disabled={!aiPrompt.trim()} onClick={() => setShowAiPlan(true)}><Sparkles size={14}/> Build a plan</button></div></div>{showAiPlan && <div className="ai-notice"><Sparkles size={15}/><span>Your goal is ready for AI planning. Connect an AI provider to generate and review a suggested task breakdown.</span><button onClick={() => setShowAiPlan(false)} aria-label="Dismiss"><X size={14}/></button></div>}<div className="ai-tip"><div className="tip-icon"><Target size={15}/></div><div><strong>Small steps, big momentum</strong><p>Break ambitious goals into focused 25–45 minute sessions.</p></div></div></div>
-            <div className="panel week-panel"><div className="panel-heading"><div><div className="panel-title">This week</div><p>Your progress at a glance.</p></div><button className="more-button"><MoreHorizontal size={18}/></button></div><div className="week-progress"><div className="week-ring" style={{'--progress': progress + '%'} as React.CSSProperties}><div><strong>{progress}%</strong><small>done</small></div></div><div className="week-legend"><div><i className="legend-done"/>Completed <strong>{completed}</strong></div><div><i className="legend-open"/>Remaining <strong>{tasks.length - completed}</strong></div></div></div><div className="week-foot"><span><ArrowUpRight size={14}/> Keep it up!</span><span>{tasks.length} total tasks</span></div></div>
+            <div className="panel week-panel"><div className="panel-heading"><div><div className="panel-title">This week</div><p>Your progress at a glance.</p></div><button className="more-button"><MoreHorizontal size={18}/></button></div><div className="week-progress"><div className="week-ring" style={{'--progress': progress + '%'} as CSSProperties}><div><strong>{progress}%</strong><small>done</small></div></div><div className="week-legend"><div><i className="legend-done"/>Completed <strong>{completed}</strong></div><div><i className="legend-open"/>Remaining <strong>{tasks.length - completed}</strong></div></div></div><div className="week-foot"><span><ArrowUpRight size={14}/> Keep it up!</span><span>{tasks.length} total tasks</span></div></div>
           </div>
         </section>
       </div>
