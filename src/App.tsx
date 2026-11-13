@@ -13,6 +13,7 @@ const seed: Task[] = [
   { id: '4', title: 'Explore AI workflow ideas', project: 'Research', priority: 'Low', due: 'Tomorrow', done: false, estimate: '1 hour' },
 ]
 const priorityOrder: Priority[] = ['Urgent', 'High', 'Medium', 'Low']
+const createTaskId = () => typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `task-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 const todayLabel = new Intl.DateTimeFormat('en', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date())
 
 export default function App() {
@@ -80,7 +81,7 @@ export default function App() {
     if (editingId) {
       persist(tasks.map(task => task.id === editingId ? { ...task, title: newTitle.trim(), priority: newPriority, due: newDue, project: newProject.trim() || 'Personal', estimate: newEstimate } : task))
     } else {
-      persist([{ id: crypto.randomUUID(), title: newTitle.trim(), project: newProject.trim() || 'Personal', priority: newPriority, due: newDue, done: false, estimate: newEstimate }, ...tasks])
+      persist([{ id: createTaskId(), title: newTitle.trim(), project: newProject.trim() || 'Personal', priority: newPriority, due: newDue, done: false, estimate: newEstimate }, ...tasks])
     }
     setNewTitle(''); setEditingId(null); setShowAdd(false)
   }
