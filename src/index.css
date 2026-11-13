@@ -53,3 +53,15 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+/* Task editor and board action refinements */
+.kanban-actions{display:flex;align-items:center;gap:4px}
+.kanban-actions button{width:27px;height:27px;display:grid;place-items:center;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+.kanban-actions button:hover{background:var(--soft);color:#6b5ce7}
+.kanban-actions button:last-child:hover{background:#fff0ef;color:#d96d68}
+.dark .kanban-actions button:last-child:hover{background:#452c35;color:#ff9a91}
+.kanban-card-top{gap:8px}
+.modal label select{width:100%;min-width:0;cursor:pointer}
+.modal label select:hover,.modal label input:hover{border-color:#c9c3f4}
+.modal-actions .primary-button{min-width:120px;justify-content:center}
+@media(max-width:580px){.kanban-actions{gap:1px}.kanban-actions button{width:25px;height:25px}}
