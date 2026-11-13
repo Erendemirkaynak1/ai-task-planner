@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { CalendarView, KanbanBoard } from './components/PlannerViews'
-import { Activity, ArrowUpRight, Bell, CalendarDays, Check, CheckCircle2, ChevronDown, Circle, Clock3, Command, Filter, LayoutDashboard, ListTodo, MoreHorizontal, Pencil, Plus, Search, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
+import { createTaskBackup, parseTaskBackup } from './lib/taskBackup'
+import { Activity, ArrowUpRight, Bell, Download, Upload, CalendarDays, Check, CheckCircle2, ChevronDown, Circle, Clock3, Command, Filter, LayoutDashboard, ListTodo, MoreHorizontal, Pencil, Plus, Search, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
 
 type Priority = 'Urgent' | 'High' | 'Medium' | 'Low'
 type Task = { id: string; title: string; project: string; priority: Priority; due: string; done: boolean; estimate: string }
@@ -29,6 +30,8 @@ export default function App() {
   const [aiPrompt, setAiPrompt] = useState('')
   const [showAiPlan, setShowAiPlan] = useState(false)
   const [dark, setDark] = useState(false)
+  const importRef = useRef<HTMLInputElement>(null)
+  const [backupMessage, setBackupMessage] = useState('')
 
   const persist = (next: Task[]) => { setTasks(next); localStorage.setItem('daymark.tasks', JSON.stringify(next)) }
   const visible = useMemo(() => tasks.filter(t => {
@@ -54,6 +57,31 @@ export default function App() {
     setNewTitle(''); setEditingId(null); setShowAdd(false)
   }
   const remove = (id: string) => persist(tasks.filter(t => t.id !== id))
+  const exportBackup = () => {
+    const blob = new Blob([createTaskBackup(tasks)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'daymark-backup-' + new Date().toISOString().slice(0, 10) + '.json'
+    link.click()
+    URL.revokeObjectURL(url)
+    setBackupMessage('Backup exported successfully.')
+  }
+  const importBackup = async (file?: File) => {
+    if (!file) return
+    try {
+      if (file.size > 2 * 1024 * 1024) throw new Error('Backup file must be smaller than 2 MB.')
+      const imported = parseTaskBackup(JSON.parse(await file.text()))
+      persist(imported)
+      setActive('All tasks')
+      setQuery('')
+      setBackupMessage('Imported ' + imported.length + ' tasks. Your previous local list was replaced.')
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : 'Could not read this backup.')
+    } finally {
+      if (importRef.current) importRef.current.value = ''
+    }
+  }
 
   return <div className={dark ? 'app dark' : 'app'}>
     <aside className="sidebar">
@@ -83,7 +111,7 @@ export default function App() {
           <div className="stat-card"><div className="stat-top"><span>High priority</span><span className="stat-icon orange"><Activity size={17}/></span></div><div className="stat-value">{tasks.filter(t => ['Urgent','High'].includes(t.priority) && !t.done).length}<small> tasks</small></div><div className="stat-foot">Focus on what matters most</div><div className="priority-dots"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div></div>
         </section>
         {active === 'Calendar' ? <CalendarView tasks={tasks}/> : active === 'Board' ? <KanbanBoard tasks={tasks} onToggle={toggle}/> : <section className="planner-grid">
-          <div className="panel tasks-panel"><div className="panel-heading"><div><div className="panel-title">Your tasks <span className="count-pill">{visible.length}</span></div><p>Stay focused on your next step.</p></div><button className="subtle-button" onClick={() => setActive('All tasks')}><Filter size={15}/> View all</button></div>
+          <div className="panel tasks-panel"><div className="panel-heading"><div><div className="panel-title">Your tasks <span className="count-pill">{visible.length}</span></div><p>Stay focused on your next step.</p></div><div className="task-tools"><button className="subtle-button" onClick={exportBackup} title="Export all tasks"><Download size={14}/> Export</button><button className="subtle-button" onClick={() => importRef.current?.click()} title="Import a Daymark backup"><Upload size={14}/> Import</button><button className="subtle-button" onClick={() => setActive('All tasks')}><Filter size={15}/> View all</button><input ref={importRef} type="file" accept="application/json,.json" hidden onChange={event => void importBackup(event.target.files?.[0])}/></div></div>{backupMessage && <div className="backup-message" role="status">{backupMessage}<button onClick={() => setBackupMessage('')} aria-label="Dismiss message"><X size={13}/></button></div>}
             <div className="task-tabs">{['Today','Upcoming','All tasks','Completed'].map(tab => <button key={tab} onClick={() => setActive(tab)} className={active === tab ? 'selected' : ''}>{tab}</button>)}</div>
             <div className="task-list">{visible.length ? visible.map(task => <div className={task.done ? 'task-row is-done' : 'task-row'} key={task.id}><button className={task.done ? 'check checked' : 'check'} onClick={() => toggle(task.id)} aria-label={task.done ? 'Mark incomplete' : 'Complete task'}>{task.done && <Check size={13}/>}</button><div className="task-info"><strong>{task.title}</strong><div className="task-meta"><span className="project-name">{task.project}</span><span>·</span><span><Clock3 size={12}/> {task.estimate}</span><span>·</span><span>{task.due}</span></div></div><span className={'priority priority-' + task.priority.toLowerCase()}><i/>{task.priority}</span><button className="delete-task" onClick={() => openEdit(task)} aria-label="Edit task"><Pencil size={14}/></button><button className="delete-task" onClick={() => remove(task.id)} aria-label="Delete task"><Trash2 size={15}/></button></div>) : <div className="empty-state"><Circle size={24}/><strong>Nothing on your list</strong><span>Add a task or try a different view.</span></div>}</div>
             <button className="add-inline" onClick={openCreate}><Plus size={15}/> Add a task</button>
