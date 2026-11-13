@@ -14,6 +14,8 @@ Daymark is an AI-assisted productivity workspace. The repository contains a resp
 - Reusable task sorting, search and completion-rate utilities
 - Authenticated Node.js task CRUD API backed by Supabase
 - Zod validation for task input and AI planning requests
+- Centralized JSON error responses, async route error handling, security headers and API 404 handling
+- Per-IP in-memory throttling for AI planning requests and UUID validation for task mutations
 - AI goal-to-task proposal endpoint with structured response validation
 - AI proposals are returned with `requires_approval: true`; the endpoint never mutates existing tasks
 - PostgreSQL schema, indexes, timestamps and per-user RLS policies
