@@ -6,7 +6,8 @@ Daymark is an AI-assisted productivity workspace. The repository contains a resp
 
 - Responsive productivity dashboard with light/dark appearance
 - Task creation, editing, completion, deletion, project/category labels, due-date presets, search and priority views
-- Local browser persistence for the unauthenticated demo experience
+- Local browser persistence for the unauthenticated demo experience, with runtime validation for restored browser data
+- Storage-quota/error feedback so failed persistence is not silently reported as saved
 - Versioned JSON task backups with validated import/export, duplicate-ID checks and a 2 MB import limit
 - Monthly calendar with task markers and month navigation
 - Kanban board with To do and Completed columns
