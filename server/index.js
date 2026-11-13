@@ -10,7 +10,15 @@ const app = express()
 const port = Number(process.env.PORT || 3001)
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 app.disable('x-powered-by')
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  res.setHeader('X-Frame-Options', 'DENY')
+  next()
+})
 app.use(express.json({ limit: '32kb' }))
+
+const asyncHandler = handler => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
 
 const env = z.object({
   SUPABASE_URL: z.string().url(),
@@ -45,7 +53,7 @@ const proposalSchema = z.object({
 let supabase = null
 if (env.success) supabase = createClient(env.data.SUPABASE_URL, env.data.SUPABASE_ANON_KEY, { auth: { persistSession: false } })
 
-const requireUser = async (req, res, next) => {
+const requireUser = asyncHandler(async (req, res, next) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase is not configured on the server.' })
   const header = req.headers.authorization || ''
   const token = header.startsWith('Bearer ') ? header.slice(7) : ''
@@ -58,41 +66,69 @@ const requireUser = async (req, res, next) => {
     global: { headers: { Authorization: `Bearer ${token}` } },
   })
   next()
+})
+
+// A small per-process limit protects the paid AI endpoint from accidental request loops.
+const aiRequestWindows = new Map()
+const limitAiRequests = (req, res, next) => {
+  const now = Date.now()
+  const key = req.ip
+  const windowMs = 60_000
+  const maxRequests = 12
+  let entry = aiRequestWindows.get(key)
+  if (!entry || now - entry.startedAt >= windowMs) {
+    entry = { startedAt: now, count: 0 }
+    aiRequestWindows.set(key, entry)
+  }
+  if (entry.count >= maxRequests) {
+    const retryAfter = Math.max(1, Math.ceil((windowMs - (now - entry.startedAt)) / 1000))
+    res.setHeader('Retry-After', String(retryAfter))
+    return res.status(429).json({ error: 'Too many AI planning requests. Please try again shortly.' })
+  }
+  entry.count += 1
+  if (aiRequestWindows.size > 10_000) {
+    for (const [ip, item] of aiRequestWindows) {
+      if (now - item.startedAt >= windowMs) aiRequestWindows.delete(ip)
+    }
+  }
+  next()
 }
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 
-app.get('/api/tasks', requireUser, async (req, res) => {
+app.get('/api/tasks', requireUser, asyncHandler(async (req, res) => {
   const { data, error } = await req.db.from('tasks').select('*').order('due_at', { ascending: true, nullsFirst: false })
   if (error) return res.status(400).json({ error: 'Could not load tasks.' })
   res.json({ tasks: data })
-})
+}))
 
-app.post('/api/tasks', requireUser, async (req, res) => {
+app.post('/api/tasks', requireUser, asyncHandler(async (req, res) => {
   const parsed = taskInput.safeParse(req.body)
   if (!parsed.success) return res.status(422).json({ error: 'Invalid task data.', details: parsed.error.flatten() })
   const { data, error } = await req.db.from('tasks').insert({ ...parsed.data, user_id: req.user.id }).select().single()
   if (error) return res.status(400).json({ error: 'Could not create task.' })
   res.status(201).json({ task: data })
-})
+}))
 
-app.patch('/api/tasks/:id', requireUser, async (req, res) => {
+app.patch('/api/tasks/:id', requireUser, asyncHandler(async (req, res) => {
+  if (!z.string().uuid().safeParse(req.params.id).success) return res.status(400).json({ error: 'Invalid task ID.' })
   const parsed = taskInput.partial().safeParse(req.body)
   if (!parsed.success || Object.keys(parsed.data || {}).length === 0) return res.status(422).json({ error: 'Provide valid task fields to update.' })
   const { data, error } = await req.db.from('tasks').update(parsed.data).eq('id', req.params.id).select().maybeSingle()
   if (error) return res.status(400).json({ error: 'Could not update task.' })
   if (!data) return res.status(404).json({ error: 'Task not found.' })
   res.json({ task: data })
-})
+}))
 
-app.delete('/api/tasks/:id', requireUser, async (req, res) => {
+app.delete('/api/tasks/:id', requireUser, asyncHandler(async (req, res) => {
+  if (!z.string().uuid().safeParse(req.params.id).success) return res.status(400).json({ error: 'Invalid task ID.' })
   const { data, error } = await req.db.from('tasks').delete().eq('id', req.params.id).select('id').maybeSingle()
   if (error) return res.status(400).json({ error: 'Could not delete task.' })
   if (!data) return res.status(404).json({ error: 'Task not found.' })
   res.status(204).end()
-})
+}))
 
-app.post('/api/ai/plan', requireUser, async (req, res) => {
+app.post('/api/ai/plan', requireUser, limitAiRequests, asyncHandler(async (req, res) => {
   const body = z.object({
     goal: z.string().trim().min(8).max(2000),
     deadline: z.string().datetime({ offset: true }).optional(),
@@ -101,6 +137,7 @@ app.post('/api/ai/plan', requireUser, async (req, res) => {
   }).safeParse(req.body)
   if (!body.success) return res.status(422).json({ error: 'Provide a goal of at least 8 characters and valid planning options.' })
   if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: 'AI provider is not configured.' })
+
   try {
     const ai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     const completion = await ai.chat.completions.create({
@@ -120,8 +157,21 @@ app.post('/api/ai/plan', requireUser, async (req, res) => {
     console.error('AI planning failed:', error instanceof Error ? error.message : 'Unknown error')
     res.status(502).json({ error: 'The AI planner could not produce a valid plan. Please try again.' })
   }
+}))
+
+// Unknown API paths should return JSON instead of the SPA's index.html.
+app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found.' }))
+app.use(express.static(path.join(root, 'dist')))
+app.get('*', (_req, res, next) => res.sendFile(path.join(root, 'dist', 'index.html'), error => {
+  if (error) next(error)
+}))
+
+app.use((error, _req, res, _next) => {
+  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+    return res.status(400).json({ error: 'Request body contains invalid JSON.' })
+  }
+  console.error('Request failed:', error instanceof Error ? error.message : 'Unknown error')
+  res.status(500).json({ error: 'An unexpected server error occurred.' })
 })
 
-app.use(express.static(path.join(root, 'dist')))
-app.get('*', (_req, res) => res.sendFile(path.join(root, 'dist', 'index.html')))
 app.listen(port, () => console.log(`Daymark API listening on :${port}`))
