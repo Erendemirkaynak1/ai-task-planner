@@ -1,5 +1,5 @@
 import { addDays, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek } from 'date-fns'
-import { ChevronLeft, ChevronRight, Circle, Clock3 } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, ChevronRight, Circle, Clock3 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 export type PlannerTask = {
@@ -23,7 +23,7 @@ export function KanbanBoard({ tasks, onToggle }: { tasks: PlannerTask[]; onToggl
     {columns.map(column => <section className="kanban-column" key={column.title}>
       <header><strong>{column.title}</strong><span>{column.items.length}</span></header>
       {column.items.length ? column.items.map(task => <article className="kanban-card" key={task.id}>
-        <div className="kanban-card-top"><span className={priorityClass(task.priority)}><i/>{task.priority}</span><button onClick={() => onToggle(task.id)} aria-label={task.done ? 'Move to to do' : 'Complete task'}><Circle size={16}/></button></div>
+        <div className="kanban-card-top"><span className={priorityClass(task.priority)}><i/>{task.priority}</span><button onClick={() => onToggle(task.id)} aria-label={task.done ? 'Move to to do' : 'Complete task'}>{task.done ? <CheckCircle2 size={17} className="board-done-icon"/> : <Circle size={16}/>}</button></div>
         <strong>{task.title}</strong><div className="kanban-card-meta"><span>{task.project}</span><span><Clock3 size={12}/>{task.estimate}</span></div>
       </article>) : <div className="kanban-empty">No tasks here yet</div>}
     </section>)}
