@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { CalendarView, KanbanBoard } from './components/PlannerViews'
-import { createTaskBackup, parseTaskBackup } from './lib/taskBackup'
+import { createTaskBackup, parseStoredTasks, parseTaskBackup } from './lib/taskBackup'
 import { Activity, ArrowUpRight, Bell, Download, Upload, CalendarDays, Check, CheckCircle2, ChevronDown, Circle, Clock3, Command, Filter, LayoutDashboard, ListTodo, MoreHorizontal, Pencil, Plus, Search, Sparkles, Target, Trash2, TrendingUp, X } from 'lucide-react'
 
 type Priority = 'Urgent' | 'High' | 'Medium' | 'Low'
@@ -17,7 +17,7 @@ const todayLabel = new Intl.DateTimeFormat('en', { weekday: 'long', month: 'long
 
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>(() => {
-    try { const saved = localStorage.getItem('daymark.tasks'); return saved ? JSON.parse(saved) as Task[] : seed } catch { return seed }
+    try { const saved = localStorage.getItem('daymark.tasks'); return saved ? parseStoredTasks(JSON.parse(saved)) : seed } catch { return seed }
   })
   const [active, setActive] = useState('Today')
   const [query, setQuery] = useState('')
@@ -33,7 +33,14 @@ export default function App() {
   const importRef = useRef<HTMLInputElement>(null)
   const [backupMessage, setBackupMessage] = useState('')
 
-  const persist = (next: Task[]) => { setTasks(next); localStorage.setItem('daymark.tasks', JSON.stringify(next)) }
+  const persist = (next: Task[]) => {
+    setTasks(next)
+    try {
+      localStorage.setItem('daymark.tasks', JSON.stringify(next))
+    } catch {
+      setBackupMessage('Changes are visible, but browser storage is unavailable or full. Export a backup before leaving this page.')
+    }
+  }
   const visible = useMemo(() => tasks.filter(t => {
     const matches = (t.title + ' ' + t.project).toLowerCase().includes(query.toLowerCase())
     return matches && (active === 'Today' ? t.due === 'Today' : active === 'Upcoming' ? t.due !== 'Today' : active === 'Completed' ? t.done : true)
@@ -64,7 +71,7 @@ export default function App() {
     link.href = url
     link.download = 'daymark-backup-' + new Date().toISOString().slice(0, 10) + '.json'
     link.click()
-    URL.revokeObjectURL(url)
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
     setBackupMessage('Backup exported successfully.')
   }
   const importBackup = async (file?: File) => {
