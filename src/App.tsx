@@ -72,6 +72,7 @@ export default function App() {
     try {
       if (file.size > 2 * 1024 * 1024) throw new Error('Backup file must be smaller than 2 MB.')
       const imported = parseTaskBackup(JSON.parse(await file.text()))
+      if (!window.confirm('Import ' + imported.length + ' tasks and replace your current local task list?')) return
       persist(imported)
       setActive('All tasks')
       setQuery('')
