@@ -26,6 +26,7 @@ export default function App() {
   const [newPriority, setNewPriority] = useState<Priority>('Medium')
   const [newDue, setNewDue] = useState('Today')
   const [newProject, setNewProject] = useState('Personal')
+  const [newEstimate, setNewEstimate] = useState('30 min')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [aiPrompt, setAiPrompt] = useState('')
   const [showAiPlan, setShowAiPlan] = useState(false)
@@ -69,21 +70,25 @@ export default function App() {
   const progress = tasks.length ? Math.round(completed / tasks.length * 100) : 0
   const toggle = (id: string) => persist(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
   const openCreate = () => {
-    setEditingId(null); setNewTitle(''); setNewPriority('Medium'); setNewDue('Today'); setNewProject('Personal'); setShowAdd(true)
+    setEditingId(null); setNewTitle(''); setNewPriority('Medium'); setNewDue('Today'); setNewProject('Personal'); setNewEstimate('30 min'); setShowAdd(true)
   }
   const openEdit = (task: Task) => {
-    setEditingId(task.id); setNewTitle(task.title); setNewPriority(task.priority); setNewDue(task.due); setNewProject(task.project); setShowAdd(true)
+    setEditingId(task.id); setNewTitle(task.title); setNewPriority(task.priority); setNewDue(task.due); setNewProject(task.project); setNewEstimate(task.estimate); setShowAdd(true)
   }
   const addTask = () => {
     if (!newTitle.trim()) return
     if (editingId) {
-      persist(tasks.map(task => task.id === editingId ? { ...task, title: newTitle.trim(), priority: newPriority, due: newDue, project: newProject.trim() || 'Personal' } : task))
+      persist(tasks.map(task => task.id === editingId ? { ...task, title: newTitle.trim(), priority: newPriority, due: newDue, project: newProject.trim() || 'Personal', estimate: newEstimate } : task))
     } else {
-      persist([{ id: crypto.randomUUID(), title: newTitle.trim(), project: newProject.trim() || 'Personal', priority: newPriority, due: newDue, done: false, estimate: '30 min' }, ...tasks])
+      persist([{ id: crypto.randomUUID(), title: newTitle.trim(), project: newProject.trim() || 'Personal', priority: newPriority, due: newDue, done: false, estimate: newEstimate }, ...tasks])
     }
     setNewTitle(''); setEditingId(null); setShowAdd(false)
   }
-  const remove = (id: string) => persist(tasks.filter(t => t.id !== id))
+  const remove = (id: string) => {
+    const task = tasks.find(item => item.id === id)
+    if (!task || !window.confirm(`Delete “${task.title}”? This cannot be undone.`)) return
+    persist(tasks.filter(t => t.id !== id))
+  }
   const exportBackup = () => {
     const blob = new Blob([createTaskBackup(tasks)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -151,6 +156,6 @@ export default function App() {
         </section>}
       </div>
     </main>
-    {showAdd && <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setShowAdd(false) }}><div className="modal"><div className="modal-head"><div><h2>{editingId ? 'Edit task' : 'Create a task'}</h2><p>Make your next step clear and actionable.</p></div><button onClick={() => setShowAdd(false)} aria-label="Close"><X size={18}/></button></div><label>Task name<input autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} placeholder="What needs to get done?"/></label><label>Project or category<input value={newProject} onChange={e => setNewProject(e.target.value)} placeholder="Personal, Work, Learning..."/></label><div className="modal-row"><label>Priority<select value={newPriority} onChange={e => setNewPriority(e.target.value as Priority)}>{priorityOrder.map(p => <option key={p}>{p}</option>)}</select></label><label>Due date<select value={newDue} onChange={e => setNewDue(e.target.value)}><option>Today</option><option>Tomorrow</option><option>Next week</option><option>No date</option></select></label></div><div className="modal-actions"><button className="cancel-button" onClick={() => setShowAdd(false)}>Cancel</button><button className="primary-button" onClick={addTask} disabled={!newTitle.trim()}>{editingId ? 'Save changes' : <><Plus size={16}/> Create task</>}</button></div></div></div>}
+    {showAdd && <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setShowAdd(false) }}><div className="modal"><div className="modal-head"><div><h2>{editingId ? 'Edit task' : 'Create a task'}</h2><p>Make your next step clear and actionable.</p></div><button onClick={() => setShowAdd(false)} aria-label="Close"><X size={18}/></button></div><label>Task name<input autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} placeholder="What needs to get done?"/></label><label>Project or category<input value={newProject} onChange={e => setNewProject(e.target.value)} placeholder="Personal, Work, Learning..."/></label><div className="modal-row"><label>Priority<select value={newPriority} onChange={e => setNewPriority(e.target.value as Priority)}>{priorityOrder.map(p => <option key={p}>{p}</option>)}</select></label><label>Due date<select value={newDue} onChange={e => setNewDue(e.target.value)}><option>Today</option><option>Tomorrow</option><option>Next week</option><option>No date</option></select></label></div><label>Estimated time<select value={newEstimate} onChange={e => setNewEstimate(e.target.value)}><option>15 min</option><option>30 min</option><option>45 min</option><option>1 hour</option><option>2 hours</option><option>3 hours</option></select></label><div className="modal-actions"><button className="cancel-button" onClick={() => setShowAdd(false)}>Cancel</button><button className="primary-button" onClick={addTask} disabled={!newTitle.trim()}>{editingId ? 'Save changes' : <><Plus size={16}/> Create task</>}</button></div></div></div>}
   </div>
 }
