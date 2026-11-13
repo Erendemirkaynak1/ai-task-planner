@@ -196,3 +196,44 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   .panel,.stat-card,.kanban-card{animation:daymark-enter .28s ease both}
   @keyframes daymark-enter{from{opacity:.7;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 }
+
+
+/* Mobile-first navigation: keep the six core destinations reachable */
+@media(max-width:580px){
+  .sidebar{
+    position:fixed;left:0;right:0;top:auto;bottom:0;z-index:8;
+    width:100%;height:auto;min-height:0;
+    padding:7px 8px calc(7px + env(safe-area-inset-bottom));
+    flex-direction:row;border-right:0;border-top:1px solid var(--line);
+    background:color-mix(in srgb,var(--surface) 94%,transparent);
+    backdrop-filter:blur(16px);
+    box-shadow:0 -8px 28px rgba(25,30,55,.06);
+  }
+  .sidebar>.brand,.sidebar>.workspace,.sidebar>.nav-label,
+  .sidebar>.nav-item,.sidebar>.sidebar-bottom{display:none}
+  .sidebar nav{
+    display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+    align-items:center;gap:3px;width:100%;
+  }
+  .sidebar nav .nav-item{
+    display:flex;height:48px;min-width:0;margin:0;padding:4px 1px;
+    flex-direction:column;justify-content:center;align-items:center;gap:3px;
+    border-radius:9px;font-size:8px;line-height:1.1;
+  }
+  .sidebar nav .nav-item span:not(.project-dot){
+    display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;font-size:8px;
+  }
+  .sidebar nav .nav-item svg{width:17px;height:17px}
+  .sidebar nav .nav-item i{display:none}
+  .sidebar nav .nav-item.active{box-shadow:none}
+  .main{padding-bottom:72px}
+  .content{padding-bottom:24px}
+}
+@media(max-width:360px){
+  .sidebar{padding-left:5px;padding-right:5px}
+  .sidebar nav{gap:1px}
+  .sidebar nav .nav-item{font-size:7px}
+  .sidebar nav .nav-item span:not(.project-dot){font-size:7px}
+}
+.dark .sidebar{box-shadow:0 -8px 28px rgba(0,0,0,.18)}
